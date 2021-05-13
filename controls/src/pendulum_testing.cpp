@@ -1,10 +1,8 @@
 #include <cstdio>
 #include <Eigen/Core>
 #include <Eigen/Dense>
-#include "matplotlib.h"
 #include "jcontrols/dynamics.h"
-// #include "jcontrols/models/pendulum.h"
-#include "jcontrols/models/bicycle_model.h"
+#include "jcontrols/models/pendulum.h"
 #include "jmath/integration/integrate.h"
 #include "jmath/integration/euler.h"
 #include "jmath/integration/rk4_classic.h"
@@ -27,7 +25,7 @@ using std::chrono::milliseconds;
 // typedef jmath::integration::Euler CIntM;
 // typedef jmath::integration::RK4Classic DIntM;
 typedef jmath::integration::Euler DIntM;
-typedef jcontrols::models::BicycleModel CPD;
+typedef jcontrols::models::Pendulum CPD;
 typedef jcontrols::DiscretizedDynamics<CPD, DIntM> DPD;
 typedef jcontrols::QuadraticCostFunction<DPD::state_dim,DPD::control_dim> CF;
 // https://bjack205.github.io/papers/AL_iLQR_Tutorial.pdf
@@ -36,56 +34,29 @@ typedef jcontrols::QuadraticCostFunction<DPD::state_dim,DPD::control_dim> CF;
 // http://roboticexplorationlab.org/papers/iLQR_Tutorial.pdf
 
 
-const double dt = 0.01;
+const double dt = 0.02;
 const int horizon = 50;
-
-void sampleTraj(std::vector<DPD::XMatrix>& xm, std::vector<DPD::UMatrix> um, DPD d) {
-    DPD::UMatrix un(0,0);
-    DPD::XMatrix xn(0,0,0,0);
-    jmath::TimeRange r(0., 200, dt);
-    double un_dir = 0.03;
-    double un_max = 0.5;
-    double v_max = 2.0;
-    xm.push_back(xn);
-    for(auto it = r.begin(); it != r.end(); ++it) {
-        if(un(0,0) > un_max && un_dir > 0.) {
-            un_dir *= -1;
-        }
-        if(un(0,0) < -un_max && un_dir < 0.) {
-            un_dir *= -1;
-        }
-        un(0,0) += un_dir;
-        
-        if(xn(3,0) < v_max) {
-            un(1,0) = 0.2;
-        }
-        xn = d.f(xn, un);
-        um.push_back(un);
-        xm.push_back(xn);
-    }
-
-}
 
 int main(int argc, char** argv) {
     (void) argc;
     (void) argv;
 
 
-    DPD::UMatrix zero_control(0.0, 0.0);
+    DPD::UMatrix zero_control(6.);
     std::vector<DPD::UMatrix> utraj(horizon);
     for(int i = 0; i < horizon; ++i) {
         utraj[i] << zero_control;
     }
 
     DPD::XMatrix start;
-    start << 0, 0, 0, 0;
+    start << -M_PI / 2, 0;
     DPD::XMatrix goal;
-    goal << -10., 100., 0., 0;
+    goal << 0, 0;
 
     CF cost_function = jcontrols::QuickQuadraticCost<DPD::state_dim,DPD::control_dim>(
-        { 1, 1000, 1e-4, 1 },
-        { 1e-4, 1 },
-        { 1, 1000, 1e-4, 1 }
+        { 400, 10 },
+        { 2e-3 },
+        { 10000,10000 }
     );
 
     CPD::Params pendulum_params;
@@ -94,13 +65,12 @@ int main(int argc, char** argv) {
     jcontrols::ilqr::TrackGoalProblem<DPD, CF> problem(&discretized_pendulum, &cost_function, horizon, start, goal);
 
     ilqr::Solver ilqr_solver;
-    ilqr_solver.params().epsilon(1e-3).max_iters(3000);
+    ilqr_solver.params().epsilon(1e-3);
 
     int trials = 1;
     auto t1 = high_resolution_clock::now();
     for(int i = 0; i < trials; ++i) {
         ilqr_solver.solve(problem, utraj);
-        std::cout << utraj[0] << std::endl;
     }
     auto t2 = high_resolution_clock::now();
     duration<double, std::milli> diff = t2 - t1;

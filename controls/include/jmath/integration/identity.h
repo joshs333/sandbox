@@ -37,6 +37,7 @@ struct Identity {
         double t_0 = 0
     ) {
         (void) f;
+        (void) dt;
         return dfdx(x_0, t_0);
     }
 

@@ -2,6 +2,7 @@
 #define JCONTROLS_DYNAMICS_H
 
 #include <functional>
+#include <vector>
 #include <Eigen/Core>
 #include "jmath/utils.h"
 #include "jmath/time_range.h"
@@ -10,7 +11,7 @@
 
 namespace jcontrols {
 
-// Make it easier to format a function for 
+// Make it easier to format a function for integration
 template<class Dynamics, int x_dim = Dynamics::state_dim, int u_dim = Dynamics::control_dim,
 typename scalar_T = typename Dynamics::scalar_type, typename UArray = std::vector<Eigen::Matrix<scalar_T,u_dim,1>>,
 typename F = std::function<Eigen::Matrix<scalar_T, x_dim, 1>(Eigen::Matrix<scalar_T, x_dim, 1>, double)>>
@@ -20,7 +21,7 @@ F intf(Dynamics* dyn, UArray us, jmath::TimeRange range) {
     };
 }
 
-// Make it easier to format a function for 
+// Make it easier to format a function for integration
 template<class Dynamics, int x_dim = Dynamics::state_dim, int u_dim = Dynamics::control_dim,
 typename scalar_T = typename Dynamics::scalar_type, typename U = Eigen::Matrix<scalar_T, u_dim, 1>,
 typename F = std::function<Eigen::Matrix<scalar_T, x_dim, 1>(Eigen::Matrix<scalar_T, x_dim, 1>, double)>>
@@ -61,9 +62,6 @@ public:
     //! Jacobians!
     virtual AMatrix A(XMatrix state, UMatrix control) = 0;
     virtual BMatrix B(XMatrix state, UMatrix control) = 0;
-
-    
-
 }; /* class Dynamics */
 
 /**
@@ -71,6 +69,8 @@ public:
  **/
 template<int state_dimension, int control_dimension, typename scalar_T = double>
 class FiniteDifferenceDynamics : public Dynamics<state_dimension, control_dimension, scalar_T> {
+private:
+    typedef Dynamics<state_dimension, control_dimension, scalar_T> BD;
 public:
     //! Dynamics function that can be used for this instantiation of dynamics
     typedef std::function<Eigen::Matrix<scalar_T, state_dimension, 1>(
@@ -137,18 +137,20 @@ public:
         Eigen::Matrix<scalar_T, state_dimension, 1> state,
         Eigen::Matrix<scalar_T, control_dimension, 1> control
     ) {
-        return Int::template jacobian<2>(
+        Eigen::Matrix<scalar_T, state_dimension, state_dimension> r;
+        r << Int::template jacobian<state_dimension>(
             std::bind(&CD::f, cd_, std::placeholders::_1, control),
             std::bind(&CD::A, cd_, std::placeholders::_1, control),
             state,
             dt_);
+        return r;
     };
 
     Eigen::Matrix<scalar_T, state_dimension, control_dimension> B(
         Eigen::Matrix<scalar_T, state_dimension, 1> state,
         Eigen::Matrix<scalar_T, control_dimension, 1> control
     ) {
-        auto jacs = Int::template jacobian<2,1>(
+        auto jacs = Int::template jacobian<state_dimension,control_dimension>(
             std::bind(&CD::f, cd_, std::placeholders::_1, control),
             std::bind(&CD::A, cd_, std::placeholders::_1, control),
             std::bind(&CD::B, cd_, std::placeholders::_1, control),
@@ -156,6 +158,10 @@ public:
             dt_);
         return jacs.second;
     };
+
+    double dt() {
+        return dt_;
+    }
 
 private:
     CD cd_;
