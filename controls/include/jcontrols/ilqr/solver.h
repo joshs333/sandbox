@@ -29,7 +29,7 @@ public:
     };
 
     template<class Problem>
-    bool solve(Problem& problem, typename Problem::UTraj& utraj) {
+    bool solve(Problem& problem, typename Problem::UTraj& utraj, typename Problem::XTraj& xtraj_out) {
         //! A ton of convenient typedefs (That I might eventually remove idk...)
         const int state_dim = Problem::Dynamics::state_dim;
         const int control_dim = Problem::Dynamics::control_dim;
@@ -97,22 +97,27 @@ public:
             // Forward pass (apply update! :) )
             for(auto it = range.begin(); it != range.end(); ++it) {
                 utraj[it->step] += K[it->step] * problem.state(xtraj[it->step], it->step) + d[it->step];
+                if(utraj[it->step](0,0) > 0.57) {
+                    utraj[it->step](0,0) = 0.57;
+                } else if(utraj[it->step](0,0) < -0.57) {
+                    utraj[it->step](0,0) = -0.57;
+                }
                 xtraj[it->step + 1] = dyn->f(xtraj[it->step], utraj[it->step]);
             }
 
             // Check if we have converged
             double new_cost = eval_cost(problem, xtraj, utraj);
-            // if (std::fabs((new_cost - last_cost)/last_cost) < params_.epsilon_) {
-                // std::cout << "broke after " << cycle_idx << " iterations" << std::endl;
-                // break;
-                // return true;
-            // }
+            if (std::fabs((new_cost - last_cost)/last_cost) < params_.epsilon_) {
+                std::cout << "broke after " << cycle_idx << " iterations" << std::endl;
+                break;
+            }
             last_cost = new_cost;
         }
 
-        for(int i = 0; i < xtraj.size(); ++i) {
-            std::cout << "step " << i << std::endl << xtraj[i] << std::endl;
-        }
+        // for(int i = 0; i < xtraj.size(); ++i) {
+        //     std::cout << "step " << i << std::endl << xtraj[i] << std::endl;
+        // }
+        xtraj_out = xtraj;
         return false;
     };
 

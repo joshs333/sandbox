@@ -1,17 +1,17 @@
-#ifndef JCONTROLS_MODELS_BICYCLE_MODEL_H
-#define JCONTROLS_MODELS_BICYCLE_MODEL_H
+#ifndef JCONTROLS_MODELS_BICYCLE_MODEL3_H
+#define JCONTROLS_MODELS_BICYCLE_MODEL3_H
 
 #include "jcontrols/dynamics.h"
 
 namespace jcontrols {
 namespace models {
 
-class BicycleModel : public Dynamics<4,2> {
+class BicycleModel3 : public Dynamics<4,2> {
 public:
     struct Params {
         double L = 1.0;
     };
-    BicycleModel(Params params);
+    BicycleModel3(Params params);
 
     XMatrix f(XMatrix state, UMatrix control);
     AMatrix A(XMatrix state, UMatrix control);
@@ -20,9 +20,9 @@ public:
 private:
     Params params_;
 
-}; /* class BicycleModel */
+}; /* class BicycleModel3 */
 
 }; /* namespace models */
 }; /* namespace jcontrols */
 
-#endif /* JCONTROLS_MODELS_BICYCLE_MODEL_H */
+#endif /* JCONTROLS_MODELS_BICYCLE_MODEL3_H */

@@ -89,6 +89,74 @@ private:
 
 }; /* class TrackGoalProblem */
 
+
+/**
+ * iLQR Problem definition to track a single goal
+ **/
+template<class DiscretizedDynamics, class CostFunction>
+class TrackTrajProblem {
+public:
+    typedef DiscretizedDynamics Dynamics;
+    typedef CostFunction CFunction;
+
+    typedef std::vector<typename Dynamics::XMatrix> XTraj;
+    typedef std::vector<typename Dynamics::UMatrix> UTraj;
+
+    TrackTrajProblem(
+        DiscretizedDynamics* dyn,
+        CostFunction* cf,
+        int horizon,
+        typename Dynamics::XMatrix start,
+        XTraj traj    
+    ):
+        dyn_(dyn),
+        cf_(cf),
+        start_(start),
+        traj_(traj),
+        range_(0., (int)traj.size() - 1, dyn->dt())
+    {};
+
+    TrackTrajProblem& updateStart(typename Dynamics::XMatrix start) {
+        start_ = start;
+        return *this;
+    };
+
+    TrackTrajProblem& updateGoal(XTraj traj) {
+        traj_ = traj;
+        return *this;
+    };
+
+    typename Dynamics::XMatrix
+    start() {
+        return start_;
+    }
+
+    typename Dynamics::XMatrix
+    state(typename Dynamics::XMatrix x_k, int k) {
+        return x_k - traj_[k];
+    };
+
+    DiscretizedDynamics* dynamics() {
+        return dyn_;
+    };
+
+    CostFunction* costfunction() {
+        return cf_;
+    };
+    
+    jmath::TimeRange range() {
+        return range_;
+    };
+
+private:
+    DiscretizedDynamics* dyn_;
+    CostFunction* cf_;
+    typename Dynamics::XMatrix start_;
+    XTraj traj_;
+    jmath::TimeRange range_;
+
+}; /* class TrackGoalProblem */
+
 }; /* namespace ilqr */
 }; /* namespace jcontrols */
 
