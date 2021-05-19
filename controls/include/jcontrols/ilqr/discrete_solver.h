@@ -8,7 +8,7 @@
 namespace jcontrols {
 namespace ilqr {
 
-class Solver {
+class DiscreteSolver {
 public:
     //! Solver parameters
     typedef struct Params{
@@ -19,7 +19,7 @@ public:
         Params() {};
     } Params;
 
-    Solver(Params params = Params()):
+    DiscreteSolver(Params params = Params()):
         params_(params)
     {
     };

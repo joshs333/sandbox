@@ -13,7 +13,7 @@
 #include "jcontrols/cost_function.h"
 #include "jmath/time_range.h"
 #include "jcontrols/ilqr/problem.h"
-#include "jcontrols/ilqr/solver.h"
+#include "jcontrols/ilqr/discrete_solver.h"
 #include <iostream>
 #include <chrono>
 #include <vector>
@@ -149,7 +149,7 @@ int main(int argc, char** argv) {
     // plt::show();
     // return 1;
 
-    ilqr::Solver ilqr_solver;
+    ilqr::DiscreteSolver ilqr_solver;
     ilqr_solver.params().epsilon(1e-3).max_iters(5000);
 
     std::vector<DPD::XMatrix> xtraj;
@@ -158,6 +158,7 @@ int main(int argc, char** argv) {
 
 
     int trials = 1;
+    int runs = 0;
     auto t1 = high_resolution_clock::now();
     for(int i = 0; i + horizon + 1 < track_len ; ++i) {
     // for(int i = 0; i < trials; ++i) {
@@ -169,11 +170,13 @@ int main(int argc, char** argv) {
             xn = discretized_pendulum2.f(xn, utraj[0]);
             ttraj.push_back(xn);
         }
+        runs++;
     }
 
     auto t2 = high_resolution_clock::now();
     duration<double, std::milli> diff = t2 - t1;
     std::cout << "Took " << diff.count() << " ms" << std::endl;
+    std::cout << "Time per solve: " << diff.count() / (double)runs << std::endl;
 
     double crosstrak = 0.;
     for(auto it = ttraj.begin(); it != ttraj.end(); ++it) {

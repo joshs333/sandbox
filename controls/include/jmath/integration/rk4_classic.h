@@ -49,13 +49,11 @@ struct RK4Classic {
 
     template<int x_dim, int u_dim, typename scalar_T=double,
     typename F = std::function<Eigen::Matrix<scalar_T, x_dim, 1>(Eigen::Matrix<scalar_T, x_dim, 1>, double)>,
-    typename DFx = std::function<Eigen::Matrix<scalar_T, x_dim, x_dim>(Eigen::Matrix<scalar_T, x_dim, 1>, double)>,
-    typename DFu = std::function<Eigen::Matrix<scalar_T, x_dim, u_dim>(Eigen::Matrix<scalar_T, x_dim, 1>, double)>>
+    typename TaylorF = std::function<std::pair<Eigen::Matrix<scalar_T, x_dim, x_dim>,Eigen::Matrix<scalar_T, x_dim, u_dim>>(Eigen::Matrix<scalar_T, x_dim, 1>, double)>>
     static std::pair<Eigen::Matrix<scalar_T, x_dim, x_dim>,Eigen::Matrix<scalar_T, x_dim, u_dim>>
-    jacobian(
+    jacobian2(
         F f,
-        DFx dfdx,
-        DFu dfdu,
+        TaylorF dfdx,
         Eigen::Matrix<scalar_T, x_dim, 1> x_0,
         double dt,
         double t_0 = 0
@@ -66,16 +64,20 @@ struct RK4Classic {
         auto k2 = dt * f(x_0 + k1 / 2., t_0 + dt / 2.);
         auto k3 = dt * f(x_0 + k2 / 2., t_0 + dt / 2.);
         // auto k4 = dt * f(x_0 + k3, t_0 + dt);
-        auto A1 = dt * dfdx(x_0, t_0);
-        auto A2 = dt * dfdx(x_0 + k1 / 2., t_0 + dt / 2.) * (eye + A1 / 2.);
-        auto A3 = dt * dfdx(x_0 + k2 / 2., t_0 + dt / 2.) * (eye + A2 / 2.);
-        auto A4 = dt * dfdx(x_0 + k3, t_0 + dt) * (eye + A3);
+        auto ab1 = dfdx(x_0, t_0);
+        auto A1 = dt * ab1.first;
+        auto ab2 = dfdx(x_0 + k1 / 2., t_0 + dt / 2.);
+        auto A2 = dt * ab2.first * (eye + A1 / 2.);
+        auto ab3 = dfdx(x_0 + k2 / 2., t_0 + dt / 2.);
+        auto A3 = dt * ab3.first * (eye + A2 / 2.);
+        auto ab4 = dfdx(x_0 + k3, t_0 + dt);
+        auto A4 = dt * ab4.first * (eye + A3);
 
         // TODO: verify these jacobians...
-        auto B1 = dt * dfdu(x_0, t_0);
-        auto B2 = dt * (dfdx(x_0 + k1 / 2., t_0 + dt / 2.) * B1 * 0.5 + dfdu(x_0 + k1 / 2., t_0 + dt / 2.));
-        auto B3 = dt * (dfdx(x_0 + k2 / 2., t_0 + dt / 2.) * B2 * 0.5 + dfdu(x_0 + k2 / 2., t_0 + dt / 2.));
-        auto B4 = dt * (dfdx(x_0 + k3, t_0 + dt) * B3 + dfdu(x_0 + k3, t_0 + dt));
+        auto B1 = dt * ab1.second;
+        auto B2 = dt * (ab2.first * B1 * 0.5 + ab2.second);
+        auto B3 = dt * (ab3.first * B2 * 0.5 + ab3.second);
+        auto B4 = dt * (ab4.first * B3 + ab4.second);
         return std::make_pair(
             eye + (A1 + 2.0 * A2 + 2.0 * A3 + A4) / 6.0,
             (B1 + 2.0 * B2 + 2.0 * B3 + B4) / 6.0);

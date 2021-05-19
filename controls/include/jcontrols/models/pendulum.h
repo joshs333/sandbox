@@ -6,7 +6,7 @@
 namespace jcontrols {
 namespace models {
 
-class Pendulum : public Dynamics<2,1> {
+class Pendulum : public Dynamics<continuous_dynamics,2,1> {
 public:
     struct Params {
         float gravity = 9.8;
@@ -16,9 +16,8 @@ public:
     };
     Pendulum(Params params);
 
-    XMatrix f(XMatrix state, UMatrix control);
-    AMatrix A(XMatrix state, UMatrix control);
-    BMatrix B(XMatrix state, UMatrix control);
+    XVector f(XVector state, UVector control);
+    StepLin taylor(XVector state, UVector control);
 
 private:
     Params params_;

@@ -22,24 +22,14 @@ public:
     typedef Eigen::Matrix<scalar_T, state_dimension, 1> XVector;
     typedef Eigen::Matrix<scalar_T, control_dimension, 1> UVector;
     typedef Eigen::Matrix<scalar_T, state_dimension, state_dimension> QMatrix;
-    // typedef Eigen::Matrix<scalar_T, control_dimension, 1> QVector;
-    //! A Matrix (state_dim x state_dim)
     typedef Eigen::Matrix<scalar_T, control_dimension, control_dimension> RMatrix;
-    // typedef Eigen::Matrix<scalar_T, state_dimension, control_dimension> RVector;
+    typedef std::pair<QMatrix,RMatrix> StepLin;
 
     //! Final state cost
-    virtual QMatrix Qf() = 0;
-    // virtual XMatrix qf() = 0;
+    virtual QMatrix taylor_f() = 0;
 
     //! Linearized Cost function
-    virtual QMatrix Q() = 0;
-    // virtual XMatrix q() = 0;
-
-    //! Jacobians!
-    virtual RMatrix R() = 0;
-    // virtual BMatrix r() = 0;
-
-
+    virtual StepLin taylor() = 0;
 }; /* class CostFunction */
 
 /**
@@ -60,14 +50,11 @@ public:
         qf_(qf)
     {};
 
-    typename CFT::QMatrix Qf() {
+    typename CFT::QMatrix taylor_f() {
         return qf_;
     }
-    typename CFT::QMatrix Q() {
-        return q_;
-    }
-    typename CFT::RMatrix R() {
-        return r_;
+    typename CFT::StepLin taylor() {
+        return CFG::QMatrix<q_;
     }
 
 private:

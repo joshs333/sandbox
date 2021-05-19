@@ -30,6 +30,8 @@ public:
     typedef DiscretizedDynamics Dynamics;
     typedef CostFunction CFunction;
 
+    typedef std::function<typename Dynamics::XMatrix(typename Dynamics::XMatrix)> XClipFunc;
+    typedef std::function<typename Dynamics::UMatrix(typename Dynamics::UMatrix)> UClipFunc;
     typedef std::vector<typename Dynamics::XMatrix> XTraj;
     typedef std::vector<typename Dynamics::UMatrix> UTraj;
 
@@ -38,7 +40,7 @@ public:
         CostFunction* cf,
         int horizon,
         typename Dynamics::XMatrix start,
-        typename Dynamics::XMatrix goal    
+        typename Dynamics::XMatrix goal
     ):
         dyn_(dyn),
         cf_(cf),
@@ -101,6 +103,11 @@ public:
 
     typedef std::vector<typename Dynamics::XMatrix> XTraj;
     typedef std::vector<typename Dynamics::UMatrix> UTraj;
+    typedef std::tuple<
+        typename Dynamics::AMatrix,
+        typename Dynamics::BMatrix,
+        
+    > TimeLin;
 
     TrackTrajProblem(
         DiscretizedDynamics* dyn,
