@@ -1,0 +1,183 @@
+version: '2.3'
+services:
+  # ////////////////////////////////////////////////////////////////////////////
+  # Basic MMPUG Service (Rviz, generally shared code, a little sim code for viz)
+  # ////////////////////////////////////////////////////////////////////////////
+  mmpug_common:
+    image: mmpug/${ARCH_T}.ros.${ROS_VERSION}:${DOCKER_IMAGE_VERSION}
+    build:
+      # docker build context
+      context: ${MMPUG_DOCKERFILE_PATH}/mmpug/
+      dockerfile: ${MMPUG_DOCKERFILE_PATH}/mmpug/services/${ROS_VERSION}.dockerfile
+      # build args to pass to the dockerfile
+      args:
+        - user_id
+        - ARCH_T
+    extends:
+      service: base
+    container_name: mmpug_common
+    environment:
+      - ROS_SOURCED_WORKSPACE=/home/developer/mmpug_ws/devel/mmpug_common/setup.bash
+    entrypoint:
+      - /docker-entrypoint/ws-shell.bash
+    tty: true
+
+  # ////////////////////////////////////////////////////////////////////////////
+  # MMPUG Autonomy Service (exploration, planner, etc...)
+  # ////////////////////////////////////////////////////////////////////////////
+  mmpug_autonomy:
+    image: mmpug/${ARCH_T}.autonomy:${DOCKER_IMAGE_VERSION}
+    build:
+      dockerfile: ${MMPUG_DOCKERFILE_PATH}/mmpug/services/autonomy.dockerfile
+      context: ${MMPUG_DOCKERFILE_PATH}/mmpug/
+      # build args to pass to the dockerfile
+      args:
+        - user_id
+        - ARCH_T
+        - ROS_VERSION
+        - DOCKER_IMAGE_VERSION
+        - REC_BASE_DOCKER_IMAGE=mmpug/${ARCH_T}.ros.${ROS_VERSION}:${DOCKER_IMAGE_VERSION}
+    extends:
+      service: base
+    container_name: mmpug_autonomy
+    environment:
+      - ROS_SOURCED_WORKSPACE=/home/developer/mmpug_ws/devel/mmpug_autonomy/setup.bash
+    entrypoint:
+      - /docker-entrypoint/ws-shell.bash
+    tty: true
+
+  # ////////////////////////////////////////////////////////////////////////////
+  # drivers service (motor drivers / imu / velodyne / etc...)
+  # ////////////////////////////////////////////////////////////////////////////
+  mmpug_drivers:
+    image: mmpug/${ARCH_T}.drivers:${DOCKER_IMAGE_VERSION}
+    build:
+      # docker build context
+      context: ${MMPUG_DOCKERFILE_PATH}/mmpug/
+      dockerfile: ${MMPUG_DOCKERFILE_PATH}/mmpug/services/drivers-general.dockerfile
+      args:
+        - user_id
+        - ARCH_T
+        - REC_BASE_DOCKER_IMAGE=mmpug/${ARCH_T}.ros.${ROS_VERSION}:${DOCKER_IMAGE_VERSION}
+    extends:
+      service: base
+    container_name: mmpug_drivers
+    environment:
+      - ROS_SOURCED_WORKSPACE=/home/developer/mmpug_ws/devel/mmpug_drivers/setup.bash
+    entrypoint:
+      - /docker-entrypoint/ws-shell.bash
+    tty: true
+
+  # ////////////////////////////////////////////////////////////////////////////
+  # base loam workspace setup
+  # ////////////////////////////////////////////////////////////////////////////
+  mmpug_estimation:
+    image: mmpug/${ARCH_T}.state_estimation:${DOCKER_IMAGE_VERSION}
+    build:
+      dockerfile: ${MMPUG_DOCKERFILE_PATH}/mmpug/services/loam.dockerfile
+      context: ${MMPUG_DOCKERFILE_PATH}/mmpug/
+      # build args to pass to the dockerfile
+      args:
+        - user_id
+        - ARCH_T
+        - ROS_VERSION
+        - DOCKER_IMAGE_VERSION
+        - REC_BASE_DOCKER_IMAGE=mmpug/${ARCH_T}.ros.${ROS_VERSION}:${DOCKER_IMAGE_VERSION}
+    extends:
+      service: base
+    container_name: mmpug_estimation
+    environment:
+      - ROS_SOURCED_WORKSPACE=/home/developer/mmpug_ws/devel/mmpug_estimation/setup.bash
+    entrypoint:
+      - /docker-entrypoint/ws-shell.bash
+    tty: true
+
+  # ////////////////////////////////////////////////////////////////////////////
+  # Camera stuff
+  # ////////////////////////////////////////////////////////////////////////////
+  mmpug_cameras:
+    image: mmpug/${ARCH_T}.cameras:${DOCKER_IMAGE_VERSION}
+    build:
+      dockerfile: ${MMPUG_DOCKERFILE_PATH}/mmpug/services/cameras.${ARCH_T}.dockerfile
+      context: ${MMPUG_DOCKERFILE_PATH}/mmpug/
+      # build args to pass to the dockerfile
+      args:
+        - user_id
+        - ARCH_T
+        - ROS_VERSION
+        - DOCKER_IMAGE_VERSION
+        - REC_BASE_DOCKER_IMAGE=nvcr.io/nvidia/l4t-base:r32.4.3
+    extends:
+      service: base
+    container_name: mmpug_cameras
+    environment:
+      - ROS_SOURCED_WORKSPACE=/home/developer/mmpug_ws/devel/mmpug_cameras/setup.bash
+    entrypoint:
+      - /docker-entrypoint/ws-shell.bash
+    tty: true
+    volumes:
+      # - /usr/lib/aarch64-linux-gnu/gstreamer-1.0/:/usr/lib/aarch64-linux-gnu/gstreamer-1.0/
+      - /usr/sbin/nvargus-daemon:/usr/sbin/nvargus-daemon
+      - /tmp/argus_socket:/tmp/argus_socket
+      - /usr/lib/aarch64-linux-gnu/:/usr/lib/aarch64-linux-gnu/
+    devices:
+      - /dev/video0:/dev/video0
+      - /dev/video1:/dev/video1
+      - /dev/video2:/dev/video2
+      - /dev/video3:/dev/video3
+      - /dev/video4:/dev/video4
+      - /dev/video5:/dev/video5
+      - /dev/video6:/dev/video6
+    ipc: "host"
+    # pid: "host"
+    runtime: nvidia
+
+  # ////////////////////////////////////////////////////////////////////////////
+  # Simulation stuff!! (should be a stand in replacement for drivers / state estimation)
+  # ////////////////////////////////////////////////////////////////////////////
+  mmpug_sim:
+    image: mmpug/${ARCH_T}.sim:${DOCKER_IMAGE_VERSION}
+    build:
+      dockerfile: ${MMPUG_DOCKERFILE_PATH}/mmpug/services/sim.dockerfile
+      context: ${MMPUG_DOCKERFILE_PATH}/mmpug/
+      # build args to pass to the dockerfile
+      args:
+        - user_id
+        - ARCH_T
+        - ROS_VERSION
+        - DOCKER_IMAGE_VERSION
+        - REC_BASE_DOCKER_IMAGE=mmpug/${ARCH_T}.ros.${ROS_VERSION}:${DOCKER_IMAGE_VERSION}
+    extends:
+      service: base
+    container_name: mmpug_sim
+    environment:
+      - ROS_SOURCED_WORKSPACE=/home/developer/mmpug_ws/devel/mmpug_sim/setup.bash
+    entrypoint:
+      - /docker-entrypoint/ws-shell.bash
+    tty: true
+
+  # ////////////////////////////////////////////////////////////////////////////
+  # Gas Sensor
+  # ////////////////////////////////////////////////////////////////////////////
+  mmpug_gas:
+    image: mmpug/${ARCH_T}.gas:${DOCKER_IMAGE_VERSION}
+    build:
+      dockerfile: ${MMPUG_DOCKERFILE_PATH}/mmpug/services/drivers-gas.dockerfile
+      context: ${MMPUG_DOCKERFILE_PATH}/mmpug/
+      # build args to pass to the dockerfile
+      args:
+        - user_id
+        - ARCH_T
+        - ROS_VERSION
+        - DOCKER_IMAGE_VERSION
+        - REC_BASE_DOCKER_IMAGE=mmpug/${ARCH_T}.ros.${ROS_VERSION}:${DOCKER_IMAGE_VERSION}
+    extends:
+      service: base
+    container_name: mmpug_gas
+    environment:
+      - ROS_SOURCED_WORKSPACE=/home/developer/mmpug_ws/devel/mmpug_drivers/gas/setup.bash
+    entrypoint:
+      - /docker-entrypoint/ws-shell.bash
+    tty: true
+    volumes:
+      - /dev/i2c-8:/dev/i2c-8

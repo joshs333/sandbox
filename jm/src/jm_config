@@ -1,0 +1,34 @@
+root_dir: $MMPUG_PATH
+
+base_workspace:
+    compose_files:
+        - operations/mmpug_docker/dockerfiles/docker-compose.yaml
+        - operations/mmpug_docker/dockerfiles/mmpug/docker-compose.yaml
+    env_files:
+        - ~/.mmpug/mmpug_project_config/scenarios/.header.env
+        - ~/.mmpug/mmpug_project_config/scenarios/${SCENARIO_SET}/${SCENARIO}.env
+        - ~/.mmpug/mmpug_project_config/scenarios/${SCENARIO_SET}/.header.env
+
+workspaces:
+    mmpug_common:
+        catkin_root: src/mmpug_common
+        service_name: mmpug_common
+    mmpug_autonomy:
+        catkin_root: src/mmpug_autonomy
+        service_name: mmpug_autonomy
+    mmpug_drivers:
+        catkin_root: src/mmpug_drivers
+        service_name: mmpug_drivers
+    mmpug_estimation:
+        catkin_root: src/mmpug_estimation
+        service_name: mmpug_estimation
+    mmpug_sim:
+        catkin_root: src/mmpug_sim
+        service_name: mmpug_sim
+alias:
+    all:
+        - mmpug_common
+        - mmpug_autonomy
+        - mmpug_drivers
+        - mmpug_estimation
+        - mmpug_sim
