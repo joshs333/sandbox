@@ -1,0 +1,3 @@
+[submodule "novatel_gps/src/novatel_gps_driver"]
+	path = novatel_gps/src/novatel_gps_driver
+	url = https://github.com/swri-robotics/novatel_gps_driver
