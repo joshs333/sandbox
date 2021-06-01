@@ -9,3 +9,5 @@ RUN curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | apt
 # Install colcon
 RUN apt update \
     && apt install -y *colcon*
+    # unbelievable that these aren't also installed...
+RUN apt install -y gcc g++ build-essential
