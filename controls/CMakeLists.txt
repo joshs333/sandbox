@@ -10,8 +10,18 @@ endif()
 # set(CMAKE_CXX_FLAGS_DEBUG "-g")
 # set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
+# set(PYTHON_INCLUDE
+#     /usr/include/python2.7
+# )
+
+# set(PYTHON_LINK_LIBRARIES
+#     python2.7
+# )
+
+find_package (Eigen3 3.3 REQUIRED NO_MODULE)
+
 include_directories(
-    /usr/include/python2.7
+    ${PYTHON_INCLUDE}
     /usr/include/eigen3
     include
 )
@@ -19,6 +29,9 @@ include_directories(
 
 add_library(jmath
     src/jmath/time_range.cpp
+)
+target_link_libraries(jmath
+    Eigen3::Eigen
 )
 
 add_library(jcontrols
@@ -36,9 +49,9 @@ add_executable(main src/main.cpp)
 # add_executable(test src/test.cpp)
 
 target_link_libraries(main
+    ${PYTHON_LINK_LIBRARIES}
     jcontrols
     jmath
-    python2.7
 )
 # target_link_libraries(pen_tests
 #     jcontrols
