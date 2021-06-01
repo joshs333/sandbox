@@ -11,3 +11,4 @@ RUN apt update \
     && apt install -y *colcon*
     # unbelievable that these aren't also installed...
 RUN apt install -y gcc g++ build-essential
+RUN apt install -y ros-foxy-novatel-gps-driver
