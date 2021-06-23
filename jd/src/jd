@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+import jd_tools.config as jdc
+import jd_tools.workspace as jdw
+import jd_tools.commands as jdcmd
+import jd_tools.argparse as jda
+import sys
+import os
+
+
+if __name__ == "__main__":
+    args = sys.argv
+    pr, pa = jda.parse_args(args, ["w", "workspace"])
+
+    def get_arg_at(idx):
+        if idx >= len(pr.positional_args):
+            raise Exception("Insufficient number of args (wanted {}, have {})".format(idx + 1, len(args)))
+        return pr.positional_args[idx]
+
+    keyword = "help"
+    if len(pr.positional_args) > 1:
+        keyword = get_arg_at(1)
+
+    dry_run = "d" in pr.flags
+
+    call_path = os.path.abspath(os.getcwd())
+    workspace_path = call_path
+    if "w" in pr.set_args:
+        workspace_path = pr.set_args["w"]
+    elif "workspace" in pr.set_args:
+        workspace_path = pr.set_args["workspace"]
+    
+    cfg = jdc.find_config(workspace_path)
+    rel_cfg = os.path.relpath(cfg, call_path)
+    config_result = jdc.process_workspace(rel_cfg)
+    workspace_configs = config_result.workspaces
+
+    if keyword == "list" or keyword == "l":
+        if len(workspace_configs) == 0:
+            print("No configs :( run help?")
+        else:
+            workspace_reorg = {}
+            for config in workspace_configs:
+                if workspace_configs[config]["workspace_source"] not in workspace_reorg:
+                    workspace_reorg[workspace_configs[config]["workspace_source"]] = [workspace_configs[config]]
+                else:
+                    workspace_reorg[workspace_configs[config]["workspace_source"]].append(workspace_configs[config])
+
+            print("Available workspaces:")
+            for source in workspace_reorg:
+                for config in workspace_reorg[source]:
+                    if "v" in pr.flags:
+                        print("  {:<15}: {:<30} -> {}".format(config["name"], config["workspace_source"], config["workspace_root"]))
+                    else:
+                        print("  {:<15}: {}".format(config["name"], config["workspace_root"]))
+    # elif keyword == "cd":
+    #     workspaces = jdw.process_workspace_list(pr.positional_args[2:], config_result)
+    #     workspace_name = get_arg_at(2)
+    #     if workspace_name not in workspace_configs:
+    #         print(".")
+    #         raise Exception("Workspace {} not found in config.".format(workspace_name))
+    #     workspace_root = workspace_configs[workspace_name]["workspace_root"]
+    #     print(workspace_root)
+    elif keyword == "build" or keyword == "b":
+        workspaces = jdw.process_workspace_list(pr.positional_args[2:], config_result)
+        for workspace_name in workspaces:
+            workspace_config = workspace_configs[workspace_name]
+            jdcmd.workspace_build(workspace_config, pa, dry_run)
+    elif keyword == "build_env" or keyword == "be":
+        workspaces = []
+        list_options = False
+        command = ""
+        workspaces = []
+        if "l" in pr.flags:
+            list_options = True
+            workspaces = jdw.process_workspace_list(pr.positional_args[2:], config_result)
+        else:
+            command = get_arg_at(2)
+            workspaces = jdw.process_workspace_list(pr.positional_args[3:], config_result)
+        
+        for workspace_name in workspaces:
+            workspace_config = workspace_configs[workspace_name]
+            jdcmd.workspace_build_env(workspace_config, command, pa, dry_run, list_options)
+    elif keyword == "help" or "h" in pr.flags or "help" in pr.flags:
+        print("jd (pronouced jade)")
+        print("Description:")
+        print("    jd is a build tool designed to wrap around workspaces")
+        print("    of different types with different build environments")
+        print("")
+        print("Usage:")
+        print("    jd <keyword> [<arguments>] [<workspaces>] -- [<extended arguments>]")
+        print("")
+        print("Keywords:")
+        print("    list       : lists the workspaces available given the current configuration")
+        print("    l          : same as list ")
+        print("    build      : executes appropriate build commands for build a workspace")
+        print("    b          : same as build ")
+        print("    build_env  : able to execute commands for setup and interaction with a workspace")
+        print("                 build environment.")
+        print("    be         : same as build_env ")
+        print("")
+        print("Help messages still being expanded.")
+    else:
+        raise Exception("Unknown keyword {}".format(keyword))

@@ -1,0 +1,14 @@
+services:
+    novatel_gps:
+        image: novatel_gps_test
+        build:
+          # docker build context
+          context: .
+          dockerfile: novatel.Dockerfile
+        container_name: novatel_gps_test
+        tty: true
+        network_mode: "host"
+        privileged: true
+        volumes:
+          - .:/workspace
+        working_dir: /workspace

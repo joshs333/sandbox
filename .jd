@@ -1,0 +1,5 @@
+include_dir_search: True
+
+#aliases:
+#  all: [ novatel_gps, gtsam, jcontrols ]
+#  default: [ all ]

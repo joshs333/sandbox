@@ -13,4 +13,5 @@ add_executable(sb_gtsam_test
 
 target_link_libraries(sb_gtsam_test
     gtsam
+    tbb
 )
