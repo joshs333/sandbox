@@ -1,0 +1,6 @@
+workspaces:
+    novatel_gps:
+        build_env: docker_compose
+        build_tool: colcon
+        docker_compose_service: novatel_gps
+        docker_compose_files: [ "docker-compose.yml" ]

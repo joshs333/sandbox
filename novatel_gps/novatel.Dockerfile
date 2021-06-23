@@ -12,3 +12,9 @@ RUN apt update \
     # unbelievable that these aren't also installed...
 RUN apt install -y gcc g++ build-essential
 RUN apt install -y ros-foxy-novatel-gps-driver
+
+RUN sed -i "6d" ~/.bashrc
+RUN echo "source /opt/ros/foxy/setup.bash" >> ~/.bashrc
+# RUN echo "eval $@" >> /entrypoint.sh
+# RUN chmod +x /entrypoint.sh
+# ENTRYPOINT /entrypoint.sh

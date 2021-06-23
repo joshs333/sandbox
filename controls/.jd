@@ -1,0 +1,7 @@
+workspaces:
+    jcontrols:
+        build_env: docker
+        build_tool: cmake
+        dockerfile: .dockerfile
+        docker_run_args: "-v /tmp/.X11-unix:/tmp/.X11-unix --network=host -e DISPLAY=$DISPLAY"
+        docker_ws_args: "-v $(pwd):/workspace -w /workspace"
