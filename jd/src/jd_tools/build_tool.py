@@ -1,7 +1,8 @@
 def get_build_tool(name):
     tools = {
         "cmake": CMakeBuildTool,
-        "colcon": ColconBuildTool
+        "colcon": ColconBuildTool,
+        "catkin": CatkinBuildTool
     }
     if name not in tools:
         raise Exception("Unknown build tool: {}".format(name))
@@ -30,3 +31,7 @@ class CMakeBuildTool(BuildTool):
 class ColconBuildTool(BuildTool):
     def getBuildCommand(self, args):
         return "colcon build {}".format(args)
+
+class CatkinBuildTool(BuildTool):
+    def getBuildCommand(self, args):
+        return "catkin build {}".format(args)
