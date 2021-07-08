@@ -18,7 +18,7 @@ TimeRange::TimeRange(double start, double end, double dt) {
     dt_ = dt;
 }
 
-TimeRange::TimeRange(double start, int steps, double dt) {
+TimeRange::TimeRange(double start, unsigned int steps, double dt) {
     start_ = start;
     steps_ = steps;
     tail_ = 0.0;

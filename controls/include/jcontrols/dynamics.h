@@ -4,10 +4,8 @@
 #include <functional>
 #include <vector>
 #include <Eigen/Core>
-#include <Eigen/Dense>
 #include "jmath/utils.h"
 #include "jmath/time_range.h"
-#include <utility>
 
 #include "jmath/integration/euler.h"
 
@@ -34,22 +32,23 @@ F intf(Dynamics* dyn, U u) {
     };
 }
 
-typedef int dynamics_t;
-const int continuous_dynamics = 0;
-const int discrete_dynamics = 1;
+enum class dynamics_type_t {
+    continuous,
+    discrete
+};
 
 /**
  * @brief a base dynamics class 
  **/
-template<dynamics_t dynamics_T, int state_dimension, int control_dimension, typename scalar_T = double>
-class Dynamics {
+template<dynamics_type_t dynamics_T, int state_dimension, int control_dimension, typename scalar_T = double>
+class DynamicsBase {
 public:
-    //! Dynamics Type
-    static const dynamics_t dynamics_type = dynamics_T;
     //! Dimensionality of the state vector (state_dim x 1)
     static const int state_dim = state_dimension;
     //! Dimensionality of the state vector (control_dim x 1)
     static const int control_dim = control_dimension;
+    //! Dynamics Type
+    static const dynamics_type_t dynamics_type = dynamics_T;
     //! Scalar type
     typedef scalar_T scalar_type;
     //! State vector (state_dim x 1)
@@ -60,89 +59,22 @@ public:
     typedef Eigen::Matrix<scalar_T, state_dimension, state_dimension> AMatrix;
     //! B vector (state_dim x control_dim)
     typedef Eigen::Matrix<scalar_T, state_dimension, control_dimension> BMatrix;
-    //! Linearized Step
-    typedef std::pair<AMatrix,BMatrix> StepLin;
+    //! Taylor Expansion
+    typedef std::pair<AMatrix, BMatrix> TaylorExpansion;
 
     //! Dynamics Function!
     virtual XVector f(XVector state, UVector control) = 0;
+    //! Jacobians
+    virtual TaylorExpansion taylor(XVector state, UVector control) = 0;
 
-    //! Jacobians!
-    virtual StepLin taylor(XVector state, UVector control) = 0;
+    //! Make sure any angles get wrapped / etc..
+    void wrap(XVector& state) {};
+    //! For discrete dynamics, have a function to get the dt
+    double dt() { return dt_; };
+protected:
+    double dt_;
 }; /* class Dynamics */
 
-/**
- * @brief a dynamics class based on a function that uses finite differences to get the jacobians
- **/
-template<dynamics_t dynamics_T, int state_dimension, int control_dimension, typename scalar_T = double>
-class FiniteDifferenceDynamics : public Dynamics<dynamics_T, state_dimension, control_dimension, scalar_T> {
-private:
-    typedef Dynamics<dynamics_T, state_dimension, control_dimension, scalar_T> BD;
-public:
-    //! Dynamics function that can be used for this instantiation of dynamics
-    typedef std::function<typename BD::XVector(typename BD::XVector, typename BD::UVector)> F;
-
-    //! Create dynamics from a function
-    FiniteDifferenceDynamics(F f):
-        f_(f)
-    {};
-
-    //! Dynamics Function!
-    typename BD::XVector f(typename BD::XVector state, typename BD::UVector control) {
-        return f_(state, control);
-    };
-
-    typename BD::StepLin taylor(typename BD::XVector state, typename BD::UVector control) {
-        typename BD::StepLin res;
-        res.first = jmath::finite_difference<state_dimension, state_dimension, scalar_T>(
-                    std::bind(f_, std::placeholders::_1, control),
-                    state
-                );
-
-        res.first = jmath::finite_difference<state_dimension, control_dimension, scalar_T>(
-            std::bind(f_, state, std::placeholders::_1),
-            control
-        );
-    };
-
-private:
-    F f_;
-}; /* class FiniteDifferenceDynamics */
-
-/**
- * @brief discretize continuous dynamics
- **/
-template<typename IntM, class CD, int state_dimension = CD::state_dim, int control_dimension = CD::control_dim, typename scalar_T = typename CD::scalar_type>
-class DiscretizedDynamics : public Dynamics<discrete_dynamics, state_dimension, control_dimension, scalar_T> {
-private:
-    typedef Dynamics<discrete_dynamics, state_dimension, control_dimension, scalar_T> BD;
-public:
-    DiscretizedDynamics(CD& cd, double dt = 0.05):
-        cd_(cd), dt_(dt)
-    {};
-    
-    //! Dynamics Function!
-    typename BD::XVector f(typename BD::XVector state, typename BD::UVector control) {
-        return IntM::integrate(std::bind(&CD::f, cd_, std::placeholders::_1, control), state, dt_);
-    };
-
-    typename BD::StepLin taylor(typename BD::XVector state, typename BD::UVector control
-    ) {
-        auto jacs = IntM::template jacobian2<state_dimension,control_dimension>(
-            std::bind(&CD::f, cd_, std::placeholders::_1, control),
-            std::bind(&CD::taylor, cd_, std::placeholders::_1, control),
-            state,
-            dt_);
-        return jacs;
-    };
-
-    double dt() {
-        return dt_;
-    }
-
-private:
-    CD cd_;
-    double dt_;
-}; /* class DiscretizedDynamics */
 
 }; /* namespace jcontrols */
 

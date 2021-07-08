@@ -53,7 +53,7 @@ public:
 
 
     TimeRange(double start, double end, double dt);
-    TimeRange(double start, int steps, double dt);
+    TimeRange(double start, unsigned int steps, double dt);
 
     int size();
     iterator begin();

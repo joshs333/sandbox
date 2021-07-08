@@ -42,32 +42,6 @@ struct Euler {
         A1 = dt * dfdx(x_0, t_0);
         return eye + A1;
     }
-
-    template<int x_dim, int u_dim, typename scalar_T=double,
-    typename F = std::function<Eigen::Matrix<scalar_T, x_dim, 1>(Eigen::Matrix<scalar_T, x_dim, 1>, double)>,
-    typename DFx = std::function<Eigen::Matrix<scalar_T, x_dim, x_dim>(Eigen::Matrix<scalar_T, x_dim, 1>, double)>,
-    typename DFu = std::function<Eigen::Matrix<scalar_T, x_dim, u_dim>(Eigen::Matrix<scalar_T, x_dim, 1>, double)>>
-    static std::pair<Eigen::Matrix<scalar_T, x_dim, x_dim>,Eigen::Matrix<scalar_T, x_dim, u_dim>>
-    jacobian(
-        F f,
-        DFx dfdx,
-        DFu dfdu,
-        Eigen::Matrix<scalar_T, x_dim, 1> x_0,
-        double dt,
-        double t_0 = 0
-    ) {
-        (void) f;
-        typedef Eigen::Matrix<scalar_T, x_dim, x_dim> JAM;
-        typedef Eigen::Matrix<scalar_T, x_dim, u_dim> JBM;
-        JAM eye, A1;
-        JBM B1;
-        eye = JAM::Identity();
-        A1 = dt * dfdx(x_0, t_0);
-        B1 = dt * dfdu(x_0, t_0);
-        return std::make_pair(
-            eye + A1,
-            B1);
-    }
 }; /* struct Euler */
 
 

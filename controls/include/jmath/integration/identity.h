@@ -40,26 +40,6 @@ struct Identity {
         (void) dt;
         return dfdx(x_0, t_0);
     }
-
-    template<int x_dim, int u_dim, typename scalar_T=double,
-    typename F = std::function<Eigen::Matrix<scalar_T, x_dim, 1>(Eigen::Matrix<scalar_T, x_dim, 1>, double)>,
-    typename DFx = std::function<Eigen::Matrix<scalar_T, x_dim, x_dim>(Eigen::Matrix<scalar_T, x_dim, 1>, double)>,
-    typename DFu = std::function<Eigen::Matrix<scalar_T, x_dim, u_dim>(Eigen::Matrix<scalar_T, x_dim, 1>, double)>>
-    static std::pair<Eigen::Matrix<scalar_T, x_dim, x_dim>,Eigen::Matrix<scalar_T, x_dim, u_dim>>
-    jacobian(
-        F f,
-        DFx dfdx,
-        DFu dfdu,
-        Eigen::Matrix<scalar_T, x_dim, 1> x_0,
-        double dt,
-        double t_0 = 0
-    ) {
-        (void) f;
-        (void) dt;
-        return std::make_pair(
-            dfdx(x_0, t_0),
-            dfdu(x_0, t_0));
-    }
 }; /* struct Identity */
 
 

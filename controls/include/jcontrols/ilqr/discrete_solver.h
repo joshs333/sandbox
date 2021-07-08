@@ -1,6 +1,9 @@
 #ifndef JCONTROLS_ILQR_H
 #define JCONTROLS_ILQR_H
 
+#include <Eigen/Core>
+#include <Eigen/Dense>
+
 #include "jmath/time_range.h"
 #include "jmath/integration/integrate.h"
 #include "jmath/integration/identity.h"
@@ -13,7 +16,7 @@ public:
     //! Solver parameters
     typedef struct Params{
         double epsilon_ = 1e-3;
-        int max_iters_ = 100;
+        int max_iters_ = 3000;
         Params& epsilon(double e) { epsilon_ = e; return *this; };
         Params& max_iters(int i) { max_iters_ = i; return *this; };
         Params() {};
@@ -50,6 +53,9 @@ public:
         XTraj xtraj(range.size() + 1);
         xtraj[0] = problem.start();
         for(auto it = range.begin(); it != range.end(); ++it) {
+            if(it->step >= utraj.size()) {
+                utraj.push_back(UVector::Zero());
+            }
             xtraj[it->step + 1] = dyn->f(xtraj[it->step], utraj[it->step]);
         }
 
@@ -66,18 +72,20 @@ public:
         XUMatrix B;
         // Backward pass
         for(int cycle_idx = 0; cycle_idx < params_.max_iters_; ++cycle_idx) {
-            s[range.size()] = cf->Qf() * problem.state(xtraj[range.size()], range.size());
-            S[range.size()] = cf->Qf();
+            s[range.size()] = cf->taylor_f() * problem.state(xtraj[range.size()], range.size());
+            S[range.size()] = cf->taylor_f();
             for(auto it = range.rbegin(); it != range.rend(); ++it) {
                 // What the hell is going on here you ask>???
                 // this: http://roboticexplorationlab.org/papers/iLQR_Tutorial.pdf
                 int k = it->step;
                 x_k = xtraj[k];
                 u_k = utraj[k];
-                qm = cf->Q();
-                rm = cf->R();
-                A = dyn->A(x_k, u_k);
-                B = dyn->B(x_k, u_k);
+                auto cost_lin = cf->taylor();
+                qm = cost_lin.first;
+                rm = cost_lin.second;
+                auto dyn_lin = dyn->taylor(x_k, u_k);
+                A = dyn_lin.first;
+                B = dyn_lin.second;
                 
                 lx = qm * problem.state(x_k, k);
                 lu = rm * u_k;
@@ -97,11 +105,8 @@ public:
             // Forward pass (apply update! :) )
             for(auto it = range.begin(); it != range.end(); ++it) {
                 utraj[it->step] += K[it->step] * problem.state(xtraj[it->step], it->step) + d[it->step];
-                if(utraj[it->step](0,0) > 0.57) {
-                    utraj[it->step](0,0) = 0.57;
-                } else if(utraj[it->step](0,0) < -0.57) {
-                    utraj[it->step](0,0) = -0.57;
-                }
+                auto ulimit = problem.getULimits();
+                utraj[it->step] = utraj[it->step].cwiseMin(ulimit).cwiseMax(-ulimit);
                 xtraj[it->step + 1] = dyn->f(xtraj[it->step], utraj[it->step]);
             }
 
@@ -134,10 +139,11 @@ private:
 
         double cost = 0;
         for(auto it = range.begin(); it != range.end(); ++it) {
-            cost += (problem.state(xtraj[it->step], it->step).transpose() * cf->Q() * problem.state(xtraj[it->step], it->step)
-                 + utraj[it->step].transpose() * cf->R() * utraj[it->step])(0,0);
+            auto cost_lin = cf->taylor();
+            cost += (problem.state(xtraj[it->step], it->step).transpose() * cost_lin.first * problem.state(xtraj[it->step], it->step)
+                 + utraj[it->step].transpose() * cost_lin.second * utraj[it->step])(0,0);
         }
-        cost += (problem.state(xtraj[range.size()], range.size()).transpose() * cf->Qf() * problem.state(xtraj[range.size()], range.size()))(0,0);
+        cost += (problem.state(xtraj[range.size()], range.size()).transpose() * cf->taylor_f() * problem.state(xtraj[range.size()], range.size()))(0,0);
         return cost;
     };
     Params params_;

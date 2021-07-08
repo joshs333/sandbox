@@ -3,9 +3,12 @@
 
 #include <cmath>
 #include <functional>
+#include <limits>
 #include <Eigen/Core>
 
 namespace jmath {
+
+const double infinity = std::numeric_limits<double>::infinity();
 
 /**
  * @brief ensures an angle is in the range [-M_PI, M_PI]
